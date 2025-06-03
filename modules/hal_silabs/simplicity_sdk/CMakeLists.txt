@@ -23,10 +23,22 @@ set(BLOBS_DIR      ${ZEPHYR_HAL_SILABS_MODULE_DIR}/zephyr/blobs/simplicity_sdk)
 # respectively.
 string(TOUPPER ${CONFIG_SOC_SERIES} SILABS_DEVICE_FAMILY)
 
-# Get SoC series number, i.e. translate e.g. efr32bg22 -> 22
-string(SUBSTRING ${CONFIG_SOC_SERIES} 7 2 SILABS_DEVICE_FAMILY_NUMBER)
+if("${CONFIG_SOC_PART_NUMBER}" MATCHES "MGM24")
+    set(SILABS_DEVICE_IS_MODULE TRUE)
+    set(SILABS_DEVICE_FAMILY "MGM24")
+    set(CONFIG_SOC_SERIES "mgm24")
+    set(SILABS_DEVICE_FAMILY_NUMBER "24")
+else()
+  # Get SoC series number, i.e. translate e.g. efr32bg22 -> 22
+  string(SUBSTRING ${CONFIG_SOC_SERIES} 7 2 SILABS_DEVICE_FAMILY_NUMBER)
+endif()
 
 set(SILABS_DEVICE_PART_NUMBER ${CONFIG_SOC_PART_NUMBER})
+
+message(STATUS "SILABS_DEVICE_FAMILY = ${SILABS_DEVICE_FAMILY}")
+message(STATUS "SILABS_DEVICE_FAMILY_NUMBER = ${SILABS_DEVICE_FAMILY_NUMBER}")
+message(STATUS "SILABS_DEVICE_PART_NUMBER = ${SILABS_DEVICE_PART_NUMBER}")
+message(STATUS "CONFIG_SOC_SERIES = ${CONFIG_SOC_SERIES}")
 
 function(add_prebuilt_library lib_name prebuilt_path)
   if(NOT CONFIG_BUILD_ONLY_NO_BLOBS)
@@ -35,6 +47,22 @@ function(add_prebuilt_library lib_name prebuilt_path)
       IMPORTED_LOCATION ${BLOBS_DIR}/${prebuilt_path}
     )
     zephyr_link_libraries(${lib_name})
+  endif()
+endfunction()
+
+function(add_prebuilt_library_with_whole_archive lib_name prebuilt_path)
+  if(NOT CONFIG_BUILD_ONLY_NO_BLOBS)
+    add_library(${lib_name} STATIC IMPORTED GLOBAL)
+    set_target_properties(${lib_name} PROPERTIES
+      IMPORTED_LOCATION ${BLOBS_DIR}/${prebuilt_path}
+    )
+
+    # Link with --whole-archive semantics
+    zephyr_link_libraries(
+      LINKER:--whole-archive
+      ${lib_name}
+      LINKER:--no-whole-archive
+    )
   endif()
 endfunction()
 
@@ -78,7 +106,17 @@ if(CONFIG_SOC_GECKO_HAS_RADIO)
     zephyr_library_sources(${RADIO_DIR}/rail_lib/plugin/pa-conversions/pa_conversions_efr32.c)
 
     # prebuilt libs
-    add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_efr32xg${SILABS_DEVICE_FAMILY_NUMBER}_gcc_release.a)
+    message(STATUS "PART NUMBER is set to: ${CONFIG_SOC_PART_NUMBER}")
+    if("${CONFIG_SOC_PART_NUMBER}" STREQUAL "MGM240SD22VNA")
+      message(STATUS "ADDING LIBS FOR: ${CONFIG_SOC_PART_NUMBER}")
+      add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg24_gcc_release.a)
+      add_prebuilt_library_with_whole_archive(librail_config platform/radio/rail_lib/autogen/librail_release/librail_config_mgm240sd22vna_gcc.a)
+    elseif("${CONFIG_SOC_PART_NUMBER}" STREQUAL "MGM240PB32VNA")
+      add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg24_gcc_release.a)
+      add_prebuilt_library_with_whole_archive(librailconfig platform/radio/rail_lib/autogen/librail_release/librail_config_mgm240pb32vna_gcc.a)
+    else()
+      add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_efr32xg${SILABS_DEVICE_FAMILY_NUMBER}_gcc_release.a)
+    endif()
 
     zephyr_include_directories_ifdef(CONFIG_SOC_GECKO_CUSTOM_RADIO_PHY
       ${RADIO_DIR}/rail_lib/protocol/ble
@@ -126,12 +164,18 @@ zephyr_include_directories(
 )
 
 zephyr_compile_definitions(
-  ${SILABS_DEVICE_PART_NUMBER}
+  ${SILABS_DEVICE_PART_NUMBER}=1
   SL_CODE_COMPONENT_CLOCK_MANAGER=clock_manager
   SL_CODE_COMPONENT_DEVICE_PERIPHERAL=peripheral
   SL_CODE_COMPONENT_HAL_COMMON=hal_common
   SL_CODE_COMPONENT_SYSTEM=system
 )
+
+if(SILABS_DEVICE_IS_MODULE)
+  zephyr_compile_definitions(
+  _SILICON_LABS_MODULE=1
+)
+endif()
 
 zephyr_library_sources(
   ${DEVICE_DIR}/SiliconLabs/${SILABS_DEVICE_FAMILY}/Source/system_${CONFIG_SOC_SERIES}.c
