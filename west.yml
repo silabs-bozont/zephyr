@@ -237,6 +237,7 @@ manifest:
     - name: hal_silabs
       revision: 389726f350880238b9a1034f575ffd46c4309827
       path: modules/hal/silabs
+      url: https://github.com/silabs-bozont/hal_silabs
       groups:
         - hal
     - name: hal_st

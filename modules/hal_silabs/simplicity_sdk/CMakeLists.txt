@@ -23,10 +23,23 @@ set(BLOBS_DIR      ${ZEPHYR_HAL_SILABS_MODULE_DIR}/zephyr/blobs/simplicity_sdk)
 # respectively.
 string(TOUPPER ${CONFIG_SOC_SERIES} SILABS_DEVICE_FAMILY)
 
-# Get SoC series number, i.e. translate e.g. efr32bg22 -> 22
-string(SUBSTRING ${CONFIG_SOC_SERIES} 7 2 SILABS_DEVICE_FAMILY_NUMBER)
+if("${CONFIG_SOC_PART_NUMBER}" MATCHES "MGM24")
+    set(SILABS_DEVICE_IS_MODULE TRUE)
+    set(SILABS_DEVICE_FAMILY "MGM24")
+    set(CONFIG_SOC_SERIES "mgm24")
+    set(SILABS_DEVICE_FAMILY_NUMBER "24")
+    message(STATUS "SHIT IS MODULE YO")
+else()
+  # Get SoC series number, i.e. translate e.g. efr32bg22 -> 22
+  string(SUBSTRING ${CONFIG_SOC_SERIES} 7 2 SILABS_DEVICE_FAMILY_NUMBER)
+endif()
 
 set(SILABS_DEVICE_PART_NUMBER ${CONFIG_SOC_PART_NUMBER})
+
+message(STATUS "SILABS_DEVICE_FAMILY = ${SILABS_DEVICE_FAMILY}")
+message(STATUS "SILABS_DEVICE_FAMILY_NUMBER = ${SILABS_DEVICE_FAMILY_NUMBER}")
+message(STATUS "SILABS_DEVICE_PART_NUMBER = ${SILABS_DEVICE_PART_NUMBER}")
+message(STATUS "CONFIG_SOC_SERIES = ${CONFIG_SOC_SERIES}")
 
 function(add_prebuilt_library lib_name prebuilt_path)
   if(NOT CONFIG_BUILD_ONLY_NO_BLOBS)
@@ -78,7 +91,13 @@ if(CONFIG_SOC_GECKO_HAS_RADIO)
     zephyr_library_sources(${RADIO_DIR}/rail_lib/plugin/pa-conversions/pa_conversions_efr32.c)
 
     # prebuilt libs
-    add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_efr32xg${SILABS_DEVICE_FAMILY_NUMBER}_gcc_release.a)
+    message(STATUS "PART NUMBER is set to: ${CONFIG_SOC_PART_NUMBER}")
+    if("${CONFIG_SOC_PART_NUMBER}" STREQUAL "MGM240SD22VNA")
+      add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg24_gcc_release.a)
+      add_prebuilt_library(librail_config platform/radio/rail_lib/autogen/librail_release/librail_config_mgm240sd22vna_gcc.a)
+    else()
+      add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_efr32xg${SILABS_DEVICE_FAMILY_NUMBER}_gcc_release.a)
+    endif()
 
     zephyr_include_directories_ifdef(CONFIG_SOC_GECKO_CUSTOM_RADIO_PHY
       ${RADIO_DIR}/rail_lib/protocol/ble

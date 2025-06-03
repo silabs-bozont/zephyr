@@ -26,6 +26,8 @@
 #include <zephyr/bluetooth/services/hrs.h>
 #include <zephyr/bluetooth/services/ias.h>
 
+#include "rail.h"
+
 /* Custom Service Variables */
 #define BT_UUID_CUSTOM_SERVICE_VAL \
 	BT_UUID_128_ENCODE(0x12345678, 0x1234, 0x5678, 0x1234, 0x56789abcdef0)
@@ -279,6 +281,17 @@ BT_IAS_CB_DEFINE(ias_callbacks) = {
 	.mild_alert = alert_start,
 	.high_alert = alert_high_start,
 };
+
+void RAILCb_AssertFailed(RAIL_Handle_t railHandle, RAIL_AssertErrorCodes_t errorCode)
+{
+  // Handle the assertion: log, reset, or debug
+  // Example: log errorCode, then reset
+  // log_error(errorCode);
+  while (1) {
+    ;
+  }
+  //NVIC_SystemReset();
+}
 
 static void bt_ready(void)
 {
