@@ -50,14 +50,13 @@ function(add_prebuilt_library lib_name prebuilt_path)
   endif()
 endfunction()
 
+# Link archive file with --whole-archive semantics
 function(add_prebuilt_library_with_whole_archive lib_name prebuilt_path)
   if(NOT CONFIG_BUILD_ONLY_NO_BLOBS)
     add_library(${lib_name} STATIC IMPORTED GLOBAL)
     set_target_properties(${lib_name} PROPERTIES
       IMPORTED_LOCATION ${BLOBS_DIR}/${prebuilt_path}
     )
-
-    # Link with --whole-archive semantics
     zephyr_link_libraries(
       LINKER:--whole-archive
       ${lib_name}
@@ -105,15 +104,15 @@ if(CONFIG_SOC_GECKO_HAS_RADIO)
     zephyr_library_sources(${RADIO_DIR}/rail_lib/plugin/pa-conversions/pa_curves_efr32.c)
     zephyr_library_sources(${RADIO_DIR}/rail_lib/plugin/pa-conversions/pa_conversions_efr32.c)
 
-    # prebuilt libs
     message(STATUS "PART NUMBER is set to: ${CONFIG_SOC_PART_NUMBER}")
+    # RAIL lib and config for modules
     if("${CONFIG_SOC_PART_NUMBER}" STREQUAL "MGM240SD22VNA")
-      message(STATUS "ADDING LIBS FOR: ${CONFIG_SOC_PART_NUMBER}")
       add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg24_gcc_release.a)
       add_prebuilt_library_with_whole_archive(librail_config platform/radio/rail_lib/autogen/librail_release/librail_config_mgm240sd22vna_gcc.a)
     elseif("${CONFIG_SOC_PART_NUMBER}" STREQUAL "MGM240PB32VNA")
       add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_module_efr32xg24_gcc_release.a)
       add_prebuilt_library_with_whole_archive(librailconfig platform/radio/rail_lib/autogen/librail_release/librail_config_mgm240pb32vna_gcc.a)
+    # generic RAIL lib for SoCs
     else()
       add_prebuilt_library(librail platform/radio/rail_lib/autogen/librail_release/librail_efr32xg${SILABS_DEVICE_FAMILY_NUMBER}_gcc_release.a)
     endif()
